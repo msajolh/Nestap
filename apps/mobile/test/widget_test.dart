@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nestap/features/devices/domain/entities/device.dart';
 import 'package:nestap/features/devices/presentation/widgets/device_tile.dart';
@@ -14,7 +14,10 @@ Device _device({bool online = true, bool on = true}) => Device(
       version: 1,
     );
 
+// The M3 default ink sparkle needs a GPU shader the test runner can't load,
+// so tests use the classic ripple.
 Widget _host(Widget child) => MaterialApp(
+      theme: ThemeData(splashFactory: InkRipple.splashFactory),
       home: Scaffold(body: Center(child: SizedBox(width: 220, height: 156, child: child))),
     );
 

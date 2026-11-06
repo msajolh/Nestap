@@ -11,12 +11,10 @@ import '../models/user_dto.dart';
 
 class AuthRepositoryImpl implements AuthRepository {
   AuthRepositoryImpl({
-    required AuthRemoteDataSource remote,
-    required TokenStore tokens,
-    required SharedPreferences prefs,
-  })  : _remote = remote,
-        _tokens = tokens,
-        _prefs = prefs;
+    required this._remote,
+    required this._tokens,
+    required this._prefs,
+  });
 
   static const _kCachedUser = 'auth.cached_user';
 

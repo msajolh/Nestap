@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter/services.dart';
 
 import '../../../../core/theme/app_colors.dart';
@@ -80,7 +80,7 @@ class DeviceTile extends StatelessWidget {
                   ),
                   const SizedBox(height: 2),
                   Text(
-                    [if (roomName != null) roomName!, device.statusLine].join(' · '),
+                    [?roomName, device.statusLine].join(' · '),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: theme.textTheme.bodySmall?.copyWith(color: scheme.onSurfaceVariant),

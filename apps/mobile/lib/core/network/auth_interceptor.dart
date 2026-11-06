@@ -8,9 +8,7 @@ import '../storage/token_store.dart';
 /// A [QueuedInterceptor] handles one request at a time, so ten parallel calls
 /// with an expired token cause one refresh, not ten.
 class AuthInterceptor extends QueuedInterceptor {
-  AuthInterceptor({required TokenStore tokenStore, required Dio refreshDio})
-      : _tokenStore = tokenStore,
-        _refreshDio = refreshDio;
+  AuthInterceptor({required this._tokenStore, required this._refreshDio});
 
   /// Put `extra: {AuthInterceptor.skipAuth: true}` on sign-in requests.
   static const skipAuth = 'skipAuth';

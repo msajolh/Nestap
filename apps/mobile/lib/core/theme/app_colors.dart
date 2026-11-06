@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 /// Nestap palette, taken from the logo and nestap.net.
 abstract final class AppColors {

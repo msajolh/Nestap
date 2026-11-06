@@ -4,23 +4,17 @@ The Nestap smart home app for Android and iOS (it also runs on tablets and deskt
 
 ## Run it
 
-1. Install Flutter (3.35 or newer).
-2. Platform folders (`android/`, `ios/`) are not committed yet. Generate them once:
+1. Install Flutter **3.47 or newer**. Material now comes from the `material_ui` package, so imports use `package:material_ui/material_ui.dart` rather than `package:flutter/material.dart`.
+2. Android, iOS and web platform folders are included. Android `minSdk` is 23, as `flutter_secure_storage` and the Tuya SDK require, and the application ID is `net.nestap.app`.
+3. Start in **demo mode**. No server is needed: there's an in-memory home with Nalite-style switches, a socket, a curtain, a light and scenes.
 
    ```bash
    cd apps/mobile
-   flutter create . --project-name nestap --org net.nestap --platforms android,ios
-   ```
-
-   `flutter create` only adds missing files; it does not overwrite `lib/` or `test/`. Then set Android `minSdk` to **23** in `android/app/build.gradle.kts` (needed by `flutter_secure_storage` and the Tuya SDK).
-3. Start in **demo mode** (no server needed: in-memory home with Nalite-style switches, a socket, a curtain, a light and scenes):
-
-   ```bash
    flutter pub get
-   flutter run
+   flutter run -d chrome
    ```
 
-   Sign in with any email and any 6-digit code.
+   Sign in with any email and any 6-digit code. Running on an Android phone needs the Android SDK (install Android Studio). iOS builds need a Mac.
 4. Against a real Nestap cloud:
 
    ```bash

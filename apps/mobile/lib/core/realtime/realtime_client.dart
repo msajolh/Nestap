@@ -24,9 +24,7 @@ abstract interface class RealtimeClient {
 /// (never a token in the URL), re-subscribes after reconnecting, and backs off
 /// 1 s → 2 s → … → 30 s while the network is down.
 class WebSocketRealtimeClient implements RealtimeClient {
-  WebSocketRealtimeClient({required Uri url, required TokenStore tokenStore})
-      : _url = url,
-        _tokenStore = tokenStore;
+  WebSocketRealtimeClient({required this._url, required this._tokenStore});
 
   final Uri _url;
   final TokenStore _tokenStore;

@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 /// Icon names stored on rules, with their glyphs.
 const ruleIcons = <String, IconData>{

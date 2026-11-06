@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 import '../theme/app_spacing.dart';
 
@@ -150,7 +150,7 @@ class SectionLabel extends StatelessWidget {
                     ),
               ),
             ),
-            if (trailing != null) trailing!,
+            ?trailing,
           ],
         ),
       );

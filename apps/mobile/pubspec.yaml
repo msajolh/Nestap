@@ -4,8 +4,8 @@ publish_to: none
 version: 0.1.0+1
 
 environment:
-  sdk: ^3.9.0
-  flutter: ">=3.35.0"
+  sdk: ^3.13.0
+  flutter: ">=3.47.0"
 
 dependencies:
   flutter:
@@ -21,7 +21,8 @@ dependencies:
   # Storage
   flutter_secure_storage: ^11.2.0
   shared_preferences: ^2.5.6
-  # UI
+  # UI (Material moved out of the Flutter SDK in 3.47)
+  material_ui: ^1.10.0
   google_fonts: ^9.0.0
   # Domain helpers
   equatable: ^3.0.0

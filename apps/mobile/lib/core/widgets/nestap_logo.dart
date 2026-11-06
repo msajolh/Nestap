@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 /// The Nestap wordmark (transparent PNG, brand cyan; works on light and dark).
 class NestapLogo extends StatelessWidget {
