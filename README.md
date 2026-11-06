@@ -15,6 +15,10 @@ This repository holds the platform architecture and, later, the backend code.
 | 5 | [Key flows](docs/architecture/05-key-flows.md) | Sequence diagrams for pairing, control, state sync, automations, OTA and sharing |
 | 6 | [Device compatibility](docs/architecture/06-device-compatibility.md) | Working with today's Tuya-based devices (Nalite, Uemon) through a Tuya connector; path to Nestap firmware, Zigbee and Matter |
 
+## Mobile app
+
+[apps/mobile](apps/mobile/README.md) is the Flutter app: Clean Architecture, Riverpod, GoRouter, responsive layout, Nestap brand theme. It includes a built-in demo backend, so it runs before the cloud exists.
+
 ## Schema files
 
 | File | Database |
@@ -27,6 +31,8 @@ This repository holds the platform architecture and, later, the backend code.
 
 ```
 nestap/
+├── apps/
+│   └── mobile/          # Flutter app (Android, iOS, tablets)
 ├── api/                 # OpenAPI specs (public REST) and .proto files (internal gRPC)
 ├── services/            # one Go module per service (see 04-backend-services.md)
 │   ├── identity/
