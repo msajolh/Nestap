@@ -98,6 +98,51 @@ class DemoApiInterceptor extends Interceptor {
           homeId: body['home_id']! as String,
           roomId: body['room_id'] as String?,
         );
+
+      // Device settings, energy, schedules
+      case ('PATCH', ['v1', 'devices', final deviceId]):
+        return _backend.patchDevice(deviceId, body);
+      case ('DELETE', ['v1', 'devices', final deviceId]):
+        _backend.removeDevice(deviceId);
+        return <String, Object?>{};
+      case ('GET', ['v1', 'devices', final deviceId, 'energy']):
+        return _backend.energy(deviceId, '${o.queryParameters['range'] ?? 'week'}');
+      case ('GET', ['v1', 'devices', final deviceId, 'timers']):
+        return {'items': _backend.timers(deviceId)};
+      case ('POST', ['v1', 'devices', final deviceId, 'timers']):
+        return _backend.addTimer(deviceId, body);
+      case ('PATCH', ['v1', 'timers', final timerId]):
+        _backend.patchTimer(timerId, body);
+        return <String, Object?>{};
+      case ('DELETE', ['v1', 'timers', final timerId]):
+        _backend.deleteTimer(timerId);
+        return <String, Object?>{};
+
+      // Scenes and automations
+      case ('POST', ['v1', 'homes', final homeId, 'rules']):
+        return _backend.createRule(homeId, body);
+
+      // Notifications
+      case ('GET', ['v1', 'messages']):
+        return {'items': _backend.messages()};
+      case ('POST', ['v1', 'messages', 'read']):
+        final ids = body['ids'];
+        _backend.markRead(ids is List ? ids.cast<String>() : null);
+        return <String, Object?>{};
+
+      // Home management
+      case ('POST', ['v1', 'homes', final homeId, 'rooms']):
+        return _backend.addRoom(homeId, '${body['name']}');
+      case ('PATCH', ['v1', 'homes', _, 'rooms', final roomId]):
+        _backend.renameRoom(roomId, '${body['name']}');
+        return <String, Object?>{};
+      case ('DELETE', ['v1', 'homes', _, 'rooms', final roomId]):
+        _backend.deleteRoom(roomId);
+        return <String, Object?>{};
+      case ('GET', ['v1', 'homes', final homeId, 'members']):
+        return {'items': _backend.members(homeId)};
+      case ('POST', ['v1', 'homes', final homeId, 'invitations']):
+        return _backend.createInvitation(homeId, '${body['role'] ?? 'member'}');
     }
     throw _DemoError(404, 'NOT_FOUND', 'Demo backend has no route for ${o.method} $path');
   }

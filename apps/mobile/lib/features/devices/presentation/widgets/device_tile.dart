@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
@@ -59,7 +60,13 @@ class DeviceTile extends StatelessWidget {
                       _IconBadge(icon: device.icon, active: on),
                       const Spacer(),
                       if (onTogglePower != null && device.online)
-                        _PowerButton(on: on, onPressed: () => onTogglePower!(!on)),
+                        _PowerButton(
+                          on: on,
+                          onPressed: () {
+                            HapticFeedback.selectionClick();
+                            onTogglePower!(!on);
+                          },
+                        ),
                       if (!device.online)
                         Icon(Icons.cloud_off_rounded, size: 20, color: scheme.onSurfaceVariant),
                     ],

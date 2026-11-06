@@ -32,6 +32,9 @@ class ApiClient {
   Future<JsonMap> put(String path, {Object? body}) =>
       _guard(() => _dio.put<Object?>(path, data: body));
 
+  Future<JsonMap> patch(String path, {Object? body}) =>
+      _guard(() => _dio.patch<Object?>(path, data: body));
+
   Future<JsonMap> delete(String path) =>
       _guard(() => _dio.delete<Object?>(path));
 

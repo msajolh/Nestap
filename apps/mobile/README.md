@@ -47,11 +47,15 @@ lib/
 │   ├── widgets/       AppShell, NestapLogo, AsyncValueView, MessageView
 │   └── providers.dart infrastructure providers (Dio, storage, realtime)
 └── features/
+    ├── onboarding/    first-launch welcome slides
     ├── auth/          OTP sign-in, session restore, sign-out
-    ├── home/          homes, rooms, dashboard
-    ├── devices/       device model, live state, commands, detail controls
+    ├── home/          homes, rooms, members, dashboard, home management
+    ├── devices/       device model, live state, commands, controls, settings
+    ├── timers/        per-device schedules
+    ├── energy/        energy history and bar chart
+    ├── notifications/ message center and unread badge
     ├── pairing/       add device (Tuya SDK bridge → import into Nestap)
-    ├── scenes/        tap-to-run scenes, automation on/off
+    ├── scenes/        scenes, automations, If / Then editor
     ├── profile/       account page
     └── settings/      theme mode
 ```
@@ -87,17 +91,26 @@ Use cases exist where there is a business rule: validating sign-in input, sortin
 
 ### Navigation (GoRouter)
 
+Wireframes for every screen are in [docs/ui/wireframes.md](../../docs/ui/wireframes.md).
+
 | Path | Page | Notes |
 |------|------|-------|
 | `/splash` | Splash | Shown while the stored session is checked |
+| `/welcome` | Welcome | 3 onboarding slides, first launch only |
 | `/sign-in` | Sign in | Email/phone → 6-digit code |
-| `/home` | Dashboard | Tab 1 |
-| `/home/devices/:id` | Device detail | Pushed inside tab 1 |
+| `/home` | Dashboard | Tab 1. Bell with unread badge |
+| `/home/notifications` | Notifications | Grouped by day, mark read |
+| `/home/devices/:id` | Device control | Pushed inside tab 1 |
+| `/home/devices/:id/settings` | Device settings | Rename, room, info, remove |
+| `/home/devices/:id/timers` | Schedules | Time + repeat days + on/off; swipe to delete |
+| `/home/devices/:id/energy` | Energy | Day / week / month bar chart, average, peak |
 | `/home/add-device` | Add device | Pushed inside tab 1 |
-| `/scenes` | Scenes and automations | Tab 2 |
+| `/scenes` | Scenes and automations | Tab 2. + menu creates either |
+| `/scenes/new?kind=scene\|automation` | Rule editor | If / Then builder with live scene preview |
 | `/profile` | Me | Tab 3 |
+| `/profile/home` | Home management | Rooms (add, rename, delete), members, invite code |
 
-The tabs use `StatefulShellRoute.indexedStack`, so each tab keeps its own back stack. The `redirect` depends only on `AuthState`: unknown → splash, signed out → sign-in, signed in → away from both. The router listens to `authControllerProvider`, so session expiry anywhere sends the user to sign-in.
+The tabs use `StatefulShellRoute.indexedStack`, so each tab keeps its own back stack. The `redirect` depends only on `AuthState`: unknown → splash, signed out → welcome (first launch) or sign-in, signed in → away from all three. The router listens to `authControllerProvider`, so session expiry anywhere sends the user to sign-in.
 
 ### Responsive layout
 
@@ -145,6 +158,6 @@ Until then, demo mode uses `DemoTuyaSdkBridge`. A real build without the plugin 
 - Native Tuya pairing plugin (Android + iOS), after the SDK licence.
 - Localisation (`flutter_localizations` + ARB files; Bangla and English).
 - Bundle the Lato font and generate app icons from `assets/images/nestap_logo.png` (`flutter_launcher_icons`).
-- Energy history screens (`GET /v1/devices/{id}/energy`), device settings (rename, move room, remove), home members and sharing.
+- Joining a home with an invite code, per-device sharing, and editing existing scenes and automations.
 - Push notifications (FCM/APNs) registration via `POST /v1/push-tokens`.
 - Crash reporting in `bootstrap.dart`.

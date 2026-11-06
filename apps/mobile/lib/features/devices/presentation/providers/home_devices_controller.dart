@@ -55,6 +55,33 @@ class HomeDevicesController extends AsyncNotifier<List<Device>> {
     }
   }
 
+  Future<void> rename(String deviceId, String name) async {
+    await ref.read(deviceRepositoryProvider).rename(deviceId, name);
+    if (!ref.mounted) return;
+    final device = _find(deviceId);
+    if (device != null) _replace(device.copyWith(name: name));
+  }
+
+  Future<void> moveToRoom(String deviceId, String? roomId) async {
+    await ref.read(deviceRepositoryProvider).moveToRoom(deviceId, roomId);
+    if (!ref.mounted) return;
+    // copyWith can't clear roomId, so reload when moving out of a room.
+    final device = _find(deviceId);
+    if (roomId != null && device != null) {
+      _replace(device.copyWith(roomId: roomId));
+    } else {
+      ref.invalidateSelf();
+    }
+  }
+
+  Future<void> remove(String deviceId) async {
+    await ref.read(deviceRepositoryProvider).remove(deviceId);
+    final devices = state.value;
+    if (devices != null && ref.mounted) {
+      state = AsyncData([for (final d in devices) if (d.id != deviceId) d]);
+    }
+  }
+
   Future<void> refresh() async {
     ref.invalidateSelf();
     await future;

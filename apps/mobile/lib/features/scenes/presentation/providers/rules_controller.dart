@@ -1,7 +1,9 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../core/error/failures.dart';
 import '../../../home/home_providers.dart';
 import '../../domain/entities/rule.dart';
+import '../../domain/entities/rule_draft.dart';
 import '../../scenes_providers.dart';
 
 final rulesProvider = AsyncNotifierProvider<RulesController, List<Rule>>(
@@ -18,6 +20,18 @@ class RulesController extends AsyncNotifier<List<Rule>> {
   }
 
   Future<void> run(Rule scene) => ref.read(ruleRepositoryProvider).runScene(scene.id);
+
+  /// Validates, saves, and adds the new rule to the list.
+  Future<void> create(RuleDraft draft) async {
+    final problems = draft.validate();
+    if (problems.isNotEmpty) throw ValidationFailure(problems.first);
+    final repository = ref.read(ruleRepositoryProvider);
+    final home = await ref.read(currentHomeProvider.future);
+    if (home == null) throw const ValidationFailure('Create a home first.');
+    final rule = await repository.create(home.id, draft);
+    final rules = state.value;
+    if (rules != null && ref.mounted) state = AsyncData([...rules, rule]);
+  }
 
   /// Optimistic toggle; reverts if the server refuses.
   Future<void> setEnabled(Rule rule, bool enabled) async {

@@ -16,6 +16,8 @@ class DemoBackend {
   final List<Map<String, Object?>> _rooms = [];
   final List<Map<String, Object?>> _devices = [];
   final List<Map<String, Object?>> _rules = [];
+  final List<Map<String, Object?>> _timers = [];
+  final List<Map<String, Object?>> _messages = [];
   int _sequence = 100;
 
   Map<String, Object?> get user => {
@@ -90,12 +92,179 @@ class DemoBackend {
   void runRule(String ruleId) {
     final rule = _rules.firstWhere((r) => r['id'] == ruleId);
     for (final action in (rule['actions']! as List<Object?>).cast<Map<String, Object?>>()) {
-      applyDps(
-        action['device_id']! as String,
-        (action['dps']! as Map<String, Object?>),
-      );
+      // Delays are skipped in the demo; device actions run at once.
+      final deviceId = action['device_id'];
+      final dps = action['dps'];
+      if (deviceId is String && dps is Map<String, Object?>) applyDps(deviceId, dps);
+    }
+    _message(category: 'home', title: '${rule['name']} ran', body: 'Scene finished.');
+  }
+
+  Map<String, Object?> createRule(String homeId, Map<String, Object?> body) {
+    final kind = body['kind'] == 'automation' ? 'automation' : 'scene';
+    final rule = {
+      'id': 'rule_${_sequence++}',
+      'home_id': homeId,
+      'kind': kind,
+      'name': body['name'],
+      'icon': body['icon'],
+      'color': body['color'],
+      'enabled': true,
+      'summary': kind == 'automation' ? _summarise(body['conditions']) : null,
+      'actions': body['actions'] ?? <Object?>[],
+    };
+    _rules.add(rule);
+    return _copy([rule]).single;
+  }
+
+  String _summarise(Object? conditions) {
+    final list = conditions is List ? conditions.cast<Map<String, Object?>>() : const <Map<String, Object?>>[];
+    if (list.isEmpty) return 'No conditions';
+    final first = list.first;
+    if (first['type'] == 'schedule') {
+      final spec = first['spec'] as Map<String, Object?>? ?? const {};
+      return 'Schedule · ${spec['time']}';
+    }
+    final device = this.device('${first['device_id']}');
+    return 'When ${device?['name'] ?? 'a device'} changes';
+  }
+
+  // ---------------------------------------------------------------- devices
+
+  Map<String, Object?> patchDevice(String id, Map<String, Object?> body) {
+    final device = this.device(id);
+    if (device == null) throw StateError('Unknown device $id');
+    if (body.containsKey('name')) device['name'] = body['name'];
+    if (body.containsKey('room_id')) device['room_id'] = body['room_id'];
+    return _copy([device]).single;
+  }
+
+  void removeDevice(String id) {
+    _devices.removeWhere((d) => d['id'] == id);
+    _timers.removeWhere((t) => t['device_id'] == id);
+    _events.add({'type': 'device_removed', 'device_id': id});
+  }
+
+  /// Synthetic but stable energy history, shaped like a real household day.
+  Map<String, Object?> energy(String deviceId, String range) {
+    final device = this.device(deviceId);
+    final rated = (device?['rated_power_w'] as double?) ?? 60;
+    final seed = deviceId.codeUnits.fold<int>(7, (a, b) => (a * 31 + b) & 0xFFFF);
+    double factor(int i) => (((seed + i * 7919) % 100) / 100) * 0.6 + 0.2;
+
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final points = <Map<String, Object?>>[];
+    switch (range) {
+      case 'day':
+        for (var h = 0; h < 24; h++) {
+          final daytime = h >= 7 && h <= 23 ? 1.0 : 0.25;
+          points.add({
+            'start': today.add(Duration(hours: h)).toIso8601String(),
+            'kwh': h > now.hour ? 0.0 : _round(rated / 1000 * factor(h) * daytime),
+          });
+        }
+      case 'month':
+        for (var d = 29; d >= 0; d--) {
+          points.add({
+            'start': today.subtract(Duration(days: d)).toIso8601String(),
+            'kwh': _round(rated / 1000 * 9 * factor(d)),
+          });
+        }
+      default:
+        for (var d = 6; d >= 0; d--) {
+          points.add({
+            'start': today.subtract(Duration(days: d)).toIso8601String(),
+            'kwh': _round(rated / 1000 * 9 * factor(d)),
+          });
+        }
+    }
+    final total = points.fold<double>(0, (sum, p) => sum + (p['kwh']! as double));
+    return {'range': range, 'total_kwh': _round(total), 'points': points};
+  }
+
+  static double _round(double v) => (v * 100).roundToDouble() / 100;
+
+  // ---------------------------------------------------------------- timers
+
+  List<Map<String, Object?>> timers(String deviceId) =>
+      _copy(_timers.where((t) => t['device_id'] == deviceId).toList());
+
+  Map<String, Object?> addTimer(String deviceId, Map<String, Object?> body) {
+    final timer = {
+      'id': 'tm_${_sequence++}',
+      'device_id': deviceId,
+      'time': body['time'],
+      'days': body['days'] ?? <Object?>[],
+      'dps': body['dps'],
+      'enabled': true,
+    };
+    _timers.add(timer);
+    return _copy([timer]).single;
+  }
+
+  void patchTimer(String id, Map<String, Object?> body) {
+    final timer = _timers.firstWhere((t) => t['id'] == id);
+    if (body.containsKey('enabled')) timer['enabled'] = body['enabled'];
+  }
+
+  void deleteTimer(String id) => _timers.removeWhere((t) => t['id'] == id);
+
+  // ---------------------------------------------------------------- messages
+
+  List<Map<String, Object?>> messages() => _copy(_messages.reversed.toList());
+
+  void markRead(List<String>? ids) {
+    for (final m in _messages) {
+      if (ids == null || ids.contains(m['id'])) m['read'] = true;
     }
   }
+
+  void _message({
+    required String category,
+    required String title,
+    required String body,
+    DateTime? at,
+    bool read = false,
+  }) {
+    _messages.add({
+      'id': 'msg_${_sequence++}',
+      'category': category,
+      'title': title,
+      'body': body,
+      'created_at': (at ?? DateTime.now()).toIso8601String(),
+      'read': read,
+    });
+  }
+
+  // ---------------------------------------------------------------- home
+
+  Map<String, Object?> addRoom(String homeId, String name) {
+    final room = {'id': 'r_${_sequence++}', 'home_id': homeId, 'name': name};
+    _rooms.add(room);
+    return _copy([room]).single;
+  }
+
+  void renameRoom(String roomId, String name) =>
+      _rooms.firstWhere((r) => r['id'] == roomId)['name'] = name;
+
+  void deleteRoom(String roomId) {
+    _rooms.removeWhere((r) => r['id'] == roomId);
+    for (final d in _devices) {
+      if (d['room_id'] == roomId) d['room_id'] = null;
+    }
+  }
+
+  List<Map<String, Object?>> members(String homeId) => [
+        {'user_id': 'u_demo', 'display_name': 'Demo User', 'contact': 'demo@nestap.net', 'role': 'owner'},
+        {'user_id': 'u_rahim', 'display_name': 'Rahim Ahmed', 'contact': '+8801711000000', 'role': 'member'},
+      ];
+
+  Map<String, Object?> createInvitation(String homeId, String role) => {
+        'code': 'K7Q2-${(_sequence++).toString().padLeft(4, '0')}',
+        'role': role,
+        'expires_at': DateTime.now().add(const Duration(hours: 72)).toIso8601String(),
+      };
 
   void setRuleEnabled(String ruleId, bool enabled) {
     _rules.firstWhere((r) => r['id'] == ruleId)['enabled'] = enabled;
@@ -255,6 +424,44 @@ class DemoBackend {
         'actions': <Object?>[],
       },
     ]);
+    _timers.addAll([
+      {
+        'id': 'tm_1',
+        'device_id': 'nd_living_lights',
+        'time': '18:30',
+        'days': [1, 2, 3, 4, 5, 6, 7],
+        'dps': {'switch_1': true, 'switch_2': true, 'switch_3': true},
+        'enabled': true,
+      },
+      {
+        'id': 'tm_2',
+        'device_id': 'nd_heater',
+        'time': '06:30',
+        'days': [1, 2, 3, 4, 5],
+        'dps': {'switch_1': true},
+        'enabled': true,
+      },
+    ]);
+    final now = DateTime.now();
+    _message(
+      category: 'home',
+      title: 'Good Morning ran',
+      body: 'Curtain opened, kitchen light and water heater on.',
+      at: now.subtract(const Duration(days: 1, hours: 2)),
+      read: true,
+    );
+    _message(
+      category: 'device',
+      title: 'Garage Switch went offline',
+      body: 'Check its power and Wi-Fi.',
+      at: now.subtract(const Duration(hours: 2)),
+    );
+    _message(
+      category: 'alarm',
+      title: 'Water Heater overload',
+      body: 'Current exceeded 16 A, so the switch turned itself off.',
+      at: now.subtract(const Duration(minutes: 25)),
+    );
   }
 
   Map<String, Object?> _device({

@@ -17,7 +17,7 @@ This repository holds the platform architecture and, later, the backend code.
 
 ## Mobile app
 
-[apps/mobile](apps/mobile/README.md) is the Flutter app: Clean Architecture, Riverpod, GoRouter, responsive layout, Nestap brand theme. It includes a built-in demo backend, so it runs before the cloud exists.
+[apps/mobile](apps/mobile/README.md) is the Flutter app: Clean Architecture, Riverpod, GoRouter, responsive layout, Nestap brand theme. It includes a built-in demo backend, so it runs before the cloud exists. Screen-by-screen wireframes are in [docs/ui/wireframes.md](docs/ui/wireframes.md).
 
 ## Schema files
 

@@ -17,4 +17,15 @@ class DeviceRepositoryImpl implements DeviceRepository {
   @override
   Future<void> sendCommand(String deviceId, Map<String, Object?> dps) =>
       _api.post('/v1/devices/$deviceId/commands', body: {'dps': dps}, idempotent: true);
+
+  @override
+  Future<void> rename(String deviceId, String name) =>
+      _api.patch('/v1/devices/$deviceId', body: {'name': name});
+
+  @override
+  Future<void> moveToRoom(String deviceId, String? roomId) =>
+      _api.patch('/v1/devices/$deviceId', body: {'room_id': roomId});
+
+  @override
+  Future<void> remove(String deviceId) => _api.delete('/v1/devices/$deviceId');
 }

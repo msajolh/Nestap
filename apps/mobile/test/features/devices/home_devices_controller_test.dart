@@ -53,6 +53,15 @@ class _FakeDevices implements DeviceRepository {
     if (failNextCommand) throw const DeviceOfflineFailure();
     sent.add(dps);
   }
+
+  @override
+  Future<void> rename(String deviceId, String name) async {}
+
+  @override
+  Future<void> moveToRoom(String deviceId, String? roomId) async {}
+
+  @override
+  Future<void> remove(String deviceId) async {}
 }
 
 void main() {

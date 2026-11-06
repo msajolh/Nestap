@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../../core/responsive/responsive.dart';
+import '../../../../core/router/routes.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/widgets/async_value_view.dart';
 import '../../domain/entities/rule.dart';
 import '../providers/rules_controller.dart';
+import '../widgets/rule_visuals.dart';
 
 class ScenesPage extends ConsumerWidget {
   const ScenesPage({super.key});
@@ -19,7 +22,27 @@ class ScenesPage extends ConsumerWidget {
     final text = Theme.of(context).textTheme;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Scenes')),
+      appBar: AppBar(
+        title: const Text('Scenes'),
+        actions: [
+          PopupMenuButton<bool>(
+            tooltip: 'Create',
+            icon: const Icon(Icons.add_circle_rounded, color: AppColors.brand, size: 32),
+            onSelected: (automation) => context.push(Routes.newRule(automation: automation)),
+            itemBuilder: (_) => const [
+              PopupMenuItem(
+                value: false,
+                child: ListTile(leading: Icon(Icons.touch_app_rounded), title: Text('Tap-to-run scene')),
+              ),
+              PopupMenuItem(
+                value: true,
+                child: ListTile(leading: Icon(Icons.auto_mode_rounded), title: Text('Automation')),
+              ),
+            ],
+          ),
+          const SizedBox(width: AppSpacing.sm),
+        ],
+      ),
       body: AsyncValueView(
         value: rules,
         onRetry: () => ref.invalidate(rulesProvider),
@@ -101,9 +124,8 @@ class _SceneCardState extends ConsumerState<_SceneCard> {
 
   @override
   Widget build(BuildContext context) {
-    final color = _parseHex(widget.scene.colorHex) ?? AppColors.cyan400;
-    final foreground =
-        ThemeData.estimateBrightnessForColor(color) == Brightness.dark ? Colors.white : AppColors.navy;
+    final color = parseHexColor(widget.scene.colorHex) ?? AppColors.cyan400;
+    final foreground = foregroundOn(color);
 
     return Card(
       color: color,
@@ -119,7 +141,7 @@ class _SceneCardState extends ConsumerState<_SceneCard> {
                       dimension: 24,
                       child: CircularProgressIndicator(strokeWidth: 2.5, color: foreground),
                     )
-                  : Icon(_iconFor(widget.scene.icon), color: foreground),
+                  : Icon(iconForRule(widget.scene.icon), color: foreground),
               const Spacer(),
               Text(
                 widget.scene.name,
@@ -159,17 +181,3 @@ class _AutomationTile extends ConsumerWidget {
       );
 }
 
-IconData _iconFor(String? name) => switch (name) {
-      'sunny' => Icons.wb_sunny_rounded,
-      'logout' => Icons.logout_rounded,
-      'movie' => Icons.movie_rounded,
-      'bed' => Icons.bed_rounded,
-      'home' => Icons.home_rounded,
-      _ => Icons.auto_awesome_rounded,
-    };
-
-Color? _parseHex(String? hex) {
-  if (hex == null) return null;
-  final value = int.tryParse(hex.replaceFirst('#', ''), radix: 16);
-  return value == null ? null : Color(0xFF000000 | value);
-}

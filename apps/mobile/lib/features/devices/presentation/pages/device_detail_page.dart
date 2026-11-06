@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../../core/responsive/responsive.dart';
+import '../../../../core/router/routes.dart';
+import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/widgets/async_value_view.dart';
 import '../../../home/home_providers.dart';
@@ -20,7 +23,22 @@ class DeviceDetailPage extends ConsumerWidget {
     final rooms = ref.watch(roomsProvider).value ?? const [];
 
     return Scaffold(
-      appBar: AppBar(title: Text(device.value?.name ?? 'Device')),
+      appBar: AppBar(
+        title: Text(device.value?.name ?? 'Device'),
+        actions: [
+          IconButton(
+            tooltip: 'Schedules',
+            icon: const Icon(Icons.schedule_rounded),
+            onPressed: () => context.push(Routes.deviceTimers(deviceId)),
+          ),
+          IconButton(
+            tooltip: 'Settings',
+            icon: const Icon(Icons.settings_outlined),
+            onPressed: () => context.push(Routes.deviceSettings(deviceId)),
+          ),
+          const SizedBox(width: AppSpacing.sm),
+        ],
+      ),
       body: AsyncValueView(
         value: device,
         onRetry: () => ref.invalidate(homeDevicesProvider),
@@ -67,6 +85,21 @@ class DeviceDetailPage extends ConsumerWidget {
                       child: DeviceControls(device: device, send: send),
                     ),
                   ),
+                  if (device.hasMetering) ...[
+                    const SizedBox(height: AppSpacing.lg),
+                    Card(
+                      child: ListTile(
+                        leading: const Icon(Icons.bolt_rounded, color: AppColors.brand),
+                        title: const Text(
+                          'Energy usage',
+                          style: TextStyle(fontWeight: FontWeight.w800),
+                        ),
+                        subtitle: const Text('By hour, day and month'),
+                        trailing: const Icon(Icons.chevron_right_rounded),
+                        onTap: () => context.push(Routes.deviceEnergy(device.id)),
+                      ),
+                    ),
+                  ],
                 ],
               ),
             ),

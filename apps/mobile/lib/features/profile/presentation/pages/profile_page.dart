@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../../core/providers.dart';
 import '../../../../core/responsive/responsive.dart';
+import '../../../../core/router/routes.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/widgets/async_value_view.dart';
@@ -69,8 +71,10 @@ class ProfilePage extends ConsumerWidget {
                     children: [
                       ListTile(
                         leading: const Icon(Icons.home_outlined),
-                        title: const Text('Home'),
-                        subtitle: Text(home?.name ?? '—'),
+                        title: const Text('Home management'),
+                        subtitle: Text(home == null ? 'Rooms and members' : '${home.name} · rooms and members'),
+                        trailing: const Icon(Icons.chevron_right_rounded),
+                        onTap: () => context.push(Routes.homeManagement),
                       ),
                       const Divider(),
                       Padding(

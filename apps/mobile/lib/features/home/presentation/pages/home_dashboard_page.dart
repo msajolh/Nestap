@@ -6,11 +6,13 @@ import 'package:go_router/go_router.dart';
 
 import '../../../../core/responsive/responsive.dart';
 import '../../../../core/router/routes.dart';
+import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/widgets/async_value_view.dart';
 import '../../../devices/domain/entities/device.dart';
 import '../../../devices/presentation/providers/home_devices_controller.dart';
 import '../../../devices/presentation/widgets/device_tile.dart';
+import '../../../notifications/notifications_providers.dart';
 import '../../domain/entities/home.dart';
 import '../../home_providers.dart';
 import '../widgets/home_summary_card.dart';
@@ -77,15 +79,18 @@ class _Dashboard extends ConsumerWidget {
                 titleSpacing: side,
                 title: _HomeTitle(home: home),
                 actions: [
+                  const _NotificationsButton(),
                   if (!context.isCompact)
                     Padding(
-                      padding: EdgeInsets.only(right: side),
+                      padding: EdgeInsets.only(left: AppSpacing.sm, right: side),
                       child: FilledButton.icon(
                         onPressed: () => context.push(Routes.addDevice),
                         icon: const Icon(Icons.add_rounded),
                         label: const Text('Add device'),
                       ),
-                    ),
+                    )
+                  else
+                    SizedBox(width: side - AppSpacing.sm),
                 ],
               ),
               SliverPadding(
@@ -140,6 +145,25 @@ class _Dashboard extends ConsumerWidget {
           ),
         );
       },
+    );
+  }
+}
+
+class _NotificationsButton extends ConsumerWidget {
+  const _NotificationsButton();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final unread = ref.watch(unreadCountProvider);
+    return IconButton(
+      tooltip: unread == 0 ? 'Notifications' : 'Notifications, $unread unread',
+      onPressed: () => context.push(Routes.notifications),
+      icon: Badge(
+        isLabelVisible: unread > 0,
+        backgroundColor: AppColors.error,
+        label: Text('$unread'),
+        child: const Icon(Icons.notifications_none_rounded),
+      ),
     );
   }
 }

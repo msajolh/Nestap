@@ -47,6 +47,13 @@ final roomsProvider = FutureProvider<List<Room>>((ref) async {
   return repository.getRooms(home.id);
 });
 
+final membersProvider = FutureProvider<List<HomeMember>>((ref) async {
+  final repository = ref.watch(homeRepositoryProvider);
+  final home = await ref.watch(currentHomeProvider.future);
+  if (home == null) return const [];
+  return repository.getMembers(home.id);
+});
+
 /// Room filter on the dashboard; null means "All". Resets when the home changes.
 final selectedRoomIdProvider = NotifierProvider<SelectedRoomId, String?>(
   SelectedRoomId.new,
