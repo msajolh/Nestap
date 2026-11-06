@@ -26,6 +26,7 @@ DDL: [`db/postgres/001_core_schema.sql`](../../db/postgres/001_core_schema.sql) 
 | `ota` | ota | `firmwares`, `campaigns`, `jobs` |
 | `notify` | notification | `push_tokens`, `messages`, `preferences` |
 | `integration` | integration | `linked_accounts`, `webhooks` |
+| `connector` | connector | `user_links`, `home_links`, `cursors` (plus `catalog.device_profiles`, owned by catalog) — see [002_device_transports.sql](../../db/postgres/002_device_transports.sql) |
 | `infra` | shared | `outbox`, helper functions |
 
 - **No foreign keys across schemas.** A cross-schema reference such as `device.devices.home_id → home.homes` is kept consistent by events. For example, `home.deleted` makes device-registry unbind that home's devices. This is what lets a schema move to its own cluster in Phase 3.

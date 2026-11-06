@@ -18,6 +18,7 @@
 | 12 | **notification** | worker + API | `notify.*` | `/v1/messages`, `/v1/push-tokens`, `/v1/notification-settings` | `notification.requests`, `device.events`, `device.presence.changed` | – |
 | 13 | **ota** | API + worker | `ota.*` | `/v1/devices/{id}/firmware`, vendor console | `device.uplink` (progress, hello) | `ota.progress`, `notification.requests` |
 | 14 | **integration** | API + worker | `integration.*` | `/v1/integrations`, Alexa/Google fulfilment endpoints, Open API | `device.state.changed`, `device.presence.changed`, `device.registry` | – |
+| 15 | **connector** | API + worker | `connector.*` | `/v1/connectors/tuya/session`, `/v1/devices/import` | Tuya message service, `device.registry`, `home.events` | `device.uplink`, `device.lifecycle` (for `tuya_cloud` devices) |
 
 Not services but part of the backend:
 
@@ -82,8 +83,8 @@ JSON, CloudEvents 1.0 structured mode:
 
 | Topic | Key | Producer | Consumers | Partitions | Retention |
 |-------|-----|----------|-----------|-----------:|-----------|
-| `device.uplink` | device_id | EMQX rule | shadow, command, ota, device-registry, history | 48 | 3 d |
-| `device.lifecycle` | device_id | EMQX rule | shadow | 24 | 3 d |
+| `device.uplink` | device_id | EMQX rule, connector | shadow, command, ota, device-registry, history | 48 | 3 d |
+| `device.lifecycle` | device_id | EMQX rule, connector | shadow | 24 | 3 d |
 | `device.state.changed` | device_id | shadow | automation, realtime, history, integration, notification | 48 | 7 d |
 | `device.presence.changed` | device_id | shadow | realtime, history, automation, notification, integration, ota | 24 | 7 d |
 | `device.events` | device_id | shadow | automation, notification, history | 24 | 7 d |
@@ -195,7 +196,7 @@ Producer settings: `acks=all`, idempotent producer, `lz4` compression. Consumers
 Pipeline per `device.uplink` message (single consumer group, partitioned by device, so there are no concurrent updates per device):
 
 1. Parse the envelope and resolve `dev:meta` (product, thing-model version, home, gateway). For `sub/{subId}`, check `subId.gateway_id == device_id`.
-2. `prop/report`: map DP ids → codes, validate type/range (out-of-range values are dropped and counted), apply `scale`, enforce `min_interval_s`.
+2. `prop/report`: map DP ids → codes (connector messages already carry `codes`; see [06-device-compatibility.md §3.4](06-device-compatibility.md#34-state-presence-and-commands)), validate type/range (out-of-range values are dropped and counted), apply `scale`, enforce `min_interval_s`.
 3. Atomic Redis Lua update: reject if `seq` ≤ stored `seq` within the same boot, merge `reported`, bump `version`, return the changed keys.
 4. If anything changed, emit `device.state.changed` with `changed` + full `state`, and mark the device dirty for the PostgreSQL write-behind.
 5. `event/{code}` → validate against the thing-model event list → `device.events`.
@@ -217,7 +218,7 @@ gRPC: `GetShadow(device_ids[])` (batched for home device lists), `SetDesired(dev
 1. Authorise (permission cache → registry/home gRPC on a miss). Read-only viewers get `403`.
 2. Validate against the thing model: code exists, `mode` ≠ `ro`, type and range OK. Convert to wire `{dp_id: scaled_int}`.
 3. Presence check `dev:online:{id}` (for a sub-device: the gateway is online and the sub-device isn't reported offline). Offline → `409 DEVICE_OFFLINE`, except DPs with `offline_queue: true`, which go to `shadow.SetDesired` → `202 {"queued": true}`.
-4. Publish `down/prop/set` (QoS 1, expiry 30 s). Store `cmd:{id}` (60 s).
+4. Route by `devices.transport`: `nestap_mqtt`/`gateway_*` → publish `down/prop/set` (QoS 1, expiry 30 s); `tuya_cloud` → `connector.SendCommand` (Tuya OpenAPI; HTTP success = ack). Store `cmd:{id}` (60 s).
 5. Respond `202 {"command_id":"c_01J…"}`. The app shows the optimistic state and confirms it from the realtime `state.changed`.
 6. On `prop/set/ack` → `command.results {status: acked|rejected, ack_code, latency_ms}`. No ack within 10 s → `timeout`.
 
@@ -378,7 +379,20 @@ Countdowns are DPs (`countdown_1`) handled by the device itself. No cloud job is
 - **Webhooks:** signed (`X-Nestap-Signature: sha256=…`) POSTs of selected events. Retries with exponential backoff for 24 h. Auto-disabled after 50 consecutive failures.
 - **Matter (later):** a Matter bridge runs on Nestap gateways and exposes sub-devices locally. No cloud component beyond the existing registry.
 
-## 16. Cross-cutting libraries (`pkg/`)
+## 16. connector
+
+**Purpose:** bring devices that live on another vendor's cloud into Nestap. Phase 1 provider: **Tuya**. Full design in [06-device-compatibility.md](06-device-compatibility.md).
+
+- **Session API:** creates or loads the hidden Tuya UID user and Tuya home for a Nestap user/home, and returns the SDK login the app needs for pairing.
+- **Import:** `POST /v1/devices/import {provider, external_id, room_id}` reads Tuya device info, specification and status, resolves a `catalog.device_profiles` match (auto-importing a category profile if needed), and asks device-registry to create the device with `transport = 'tuya_cloud'`.
+- **Uplink worker:** consumes the Tuya message service (one consumer per Tuya project, resuming from `connector.cursors`), maps Tuya codes to Nestap codes, and publishes to `device.uplink` / `device.lifecycle` with header `transport=tuya_cloud`.
+- **Downlink:** gRPC `SendCommand(device_id, codes)` → Tuya OpenAPI device command, with a token bucket per Tuya project so API quota is never exceeded.
+- **Sync:** `home.member.*` → Tuya home members; `device.unbound` → remove from the Tuya home; Tuya "device removed" → registry unbind.
+- **Credentials:** Tuya project access ID/secret in Vault; per-user SDK secrets envelope-encrypted in `connector.user_links`.
+
+Adding another cloud provider later (for example eWeLink) means a new adapter inside this service, not a new pipeline.
+
+## 17. Cross-cutting libraries (`pkg/`)
 
 | Package | Contents |
 |---------|----------|

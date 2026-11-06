@@ -13,12 +13,14 @@ This repository holds the platform architecture and, later, the backend code.
 | 3 | [Database design](docs/architecture/03-database.md) | PostgreSQL, TimescaleDB, Redis and object storage: data ownership, ERD, retention |
 | 4 | [Backend services](docs/architecture/04-backend-services.md) | Each service's job, the data it owns, its APIs and events, the Kafka topic catalog, conventions |
 | 5 | [Key flows](docs/architecture/05-key-flows.md) | Sequence diagrams for pairing, control, state sync, automations, OTA and sharing |
+| 6 | [Device compatibility](docs/architecture/06-device-compatibility.md) | Working with today's Tuya-based devices (Nalite, Uemon) through a Tuya connector; path to Nestap firmware, Zigbee and Matter |
 
 ## Schema files
 
 | File | Database |
 |------|----------|
 | [db/postgres/001_core_schema.sql](db/postgres/001_core_schema.sql) | Core relational data (PostgreSQL 16) |
+| [db/postgres/002_device_transports.sql](db/postgres/002_device_transports.sql) | Device transports, Tuya connector links, device profiles |
 | [db/timescale/001_telemetry_schema.sql](db/timescale/001_telemetry_schema.sql) | Time-series history, energy, logs (TimescaleDB 2.x on PostgreSQL 16) |
 
 ## Planned repository layout
@@ -40,7 +42,8 @@ nestap/
 │   ├── realtime/
 │   ├── notification/
 │   ├── ota/
-│   └── integration/
+│   ├── integration/
+│   └── connector/       # Tuya cloud connector (Phase 1 devices)
 ├── pkg/                 # shared libraries: thingmodel, mqttproto, events, authz, observability
 ├── db/                  # migrations (postgres/, timescale/)
 ├── deploy/              # Helm charts, EMQX config, Terraform

@@ -12,6 +12,7 @@ Nestap connects smart home devices to the cloud and to the people who use them. 
 | Homes | Homes, rooms, members with roles, invitations, per-device sharing |
 | Products | Product catalog, categories, **thing model** (data points), app panel config, OEM vendors |
 | Devices | Factory licenses, pairing (Wi-Fi AP/BLE/EZ), activation, binding, unbinding, Zigbee/BLE sub-devices behind gateways |
+| Market devices | Works with today's **Tuya-based** devices (Nalite, Uemon) through a Tuya cloud connector from day one; Nestap firmware, Zigbee and Matter gateways later (see [06-device-compatibility.md](06-device-compatibility.md)) |
 | Control | Cloud control over MQTT, LAN control fallback, device shadow, offline handling |
 | Automation | Tap-to-run scenes, if-this-then-that automations, timers, countdowns, sunrise/sunset, local (gateway) execution |
 | History | DP history, energy metering for sockets/switches, connectivity log, command log |
@@ -114,7 +115,7 @@ flowchart LR
 | **Edge** | Wi-Fi devices, gateways, sub-devices, apps, voice assistants | Produce telemetry and consume commands |
 | **Connectivity** | L4 load balancer, EMQX cluster, Activation API, API gateway, Realtime gateway | Terminate TLS, authenticate, rate-limit, route |
 | **Event backbone** | Kafka | Durable, ordered (per device) event log between connectivity and services |
-| **Domain services** | 14 services (see [04-backend-services.md](04-backend-services.md)) | Business logic |
+| **Domain services** | 15 services (see [04-backend-services.md](04-backend-services.md)) | Business logic |
 | **Data** | PostgreSQL, TimescaleDB, Redis, S3 | Persistence (see [03-database.md](03-database.md)) |
 | **Platform** | Kubernetes, Vault/KMS, Prometheus, Loki, Tempo, Grafana | Runtime, secrets, observability |
 
@@ -211,7 +212,7 @@ flowchart TB
 
 | Phase | Deployables | When |
 |-------|-------------|------|
-| **1 — Modular monolith** | `nestap-api` (identity, home, catalog, device-registry, command, automation APIs as modules), `nestap-connect` (EMQX hooks + activation), `nestap-workers` (shadow, history, automation engine, scheduler, notification, ota), `nestap-realtime` | Launch, < 200k devices |
+| **1 — Modular monolith** | `nestap-api` (identity, home, catalog, device-registry, command, automation, connector APIs as modules), `nestap-connect` (EMQX hooks + activation), `nestap-workers` (shadow, history, automation engine, scheduler, notification, ota, Tuya uplink), `nestap-realtime`. Launch devices are Tuya-based, so the connector path is live from day one | Launch, < 200k devices |
 | **2 — Split hot paths** | Shadow, command and automation engine become their own deployments with their own scaling | Consumer lag or deploy coupling becomes a problem |
 | **3 — Per-service databases, multi-region** | `device` and `automation` schemas move to their own clusters; second cell | > 1M devices or a data-residency need |
 
